@@ -6,20 +6,39 @@ from tkinter import *
 而不需要每次都寫tkinter.指令)
 """
 #######################定義函數########################
-def button1_click():
-    print("按鈕1被點擊了！")#因為是print所以只會在終端機顯示，並不會在視窗上顯示
+def text_appear():
+    label1.config(text="文字出現了！")
+    """
+    config()是tkinter模組中的一個方法，用於修改元件的屬性。當你調用config()時，
+    你可以傳遞新的屬性值來更新元件的外觀或行為。在這裡，
+    我們使用config()方法將label1的text屬性設置為"文字出現了！"，這樣當按鈕被點擊時，標籤上的文字就會改變。
+    """
+def clearText():
+    label1.config(text="")#當按鈕被點擊時，將標籤上的文字清空。
 #######################建立視窗########################
 #建立主視窗
 window = Tk()#Tk()是tkinter模組中的一個物件，用於創建主視窗對象。當你調用Tk()時，它會創建一個新的主視窗。
 window.title("我的第一個GUI應用程式")#設定視窗標題
 ###################建立按鈕########################
 #建立按鈕1，並設定點擊事件為button1_click函數
-btn1 = Button(window, text="按鈕1", command=button1_click)
+btn1 = Button(window, text="顯示文字", command=text_appear)
 #將按鈕加入主視窗
-btn1.pack()#pack()是tkinter模組中的一個方法，用於將元件（如按鈕）添加到視窗中。當你調用pack()時，它會自動將元件放置在視窗的適當位置，並根據需要調整大小和位置。
+btn1.pack()
+"""
+pack()是tkinter模組中的一個方法，用於將元件（如按鈕）添加到視窗中。
+當你調用pack()時，它會自動將元件放置在視窗的適當位置，並根據需要調整大小和位置。
+"""
+#建立按鈕2，並設定點擊事件為button1_click函數
+btn2 = Button(window, text="消除文字", command=clearText)
+#將按鈕加入主視窗
+btn2.pack()
+"""
+pack()是tkinter模組中的一個方法，用於將元件（如按鈕）添加到視窗中。
+當你調用pack()時，它會自動將元件放置在視窗的適當位置，並根據需要調整大小和位置。
+"""
 ######################建立標籤########################
 #建立標籤1，顯示一些文字
-label1 = Label(window, text="這是一個標籤",fg="white",bg="blue",font=("Arial", 16))#text是標籤顯示的文字，fg是文字顏色，bg是背景顏色，font是字體和大小
+label1 = Label(window, text="")#text是標籤顯示的文字，現在先空著，方便後續放文字
 #將標籤加入主視窗
 label1.pack()
 #######################運行應用程式########################
