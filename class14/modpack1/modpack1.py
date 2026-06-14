@@ -122,23 +122,33 @@ class AIAssisant:
     def __init__(self, api_key):
         self.api_key = api_key
         openai.api_key
-    def ask(self,system_propmt,user_message,temperture=0.1,model="gpt-4o"):
+    def ask(self,system_propmt,user_message,history_messages=None,temperture=0.1,model="gpt-4o"):
         """進行一次AI對話，適合完成單次任務，例如分析天氣預報資料。"""
         #這個方法可以讓我們可以問AI一個問題，並得到一次性的回答。
         #system_propmt是給AI的角色設定，告訴AI它是誰，要做什麼任務
         #user_message是我們要問AI的問題或提供給AI的資料
+        #history_messages是之前的對話紀錄，如果有的話可以讓AI參考，讓回答更連貫
 
         #如果沒有設定金鑰，直接回傳錯誤訊息
         if not self.api_key:
             return None,"尚未設定 OpenAI API 金鑰，請先在 .env 檔案中完成設定。"
-        
+      
+        if history_messages is None:  
+            history_messages = []  # 如果沒有提供歷史訊息，就用空列表代替，#這兩行的用意是防止在下方加法的地方error
         #messages的順序很重要:
         #1. system:先告訴AI它是誰，要做什麼任務
         #2. user:再提供AI需要分析的資料或問題
+        #3.history:放入已經整理好的舊對話
+        #4.user:最後放這次真正要問的新問題
         messages = (
             [{"role": "system", "content": system_propmt}]
+            + history_messages
             + [{"role": "user", "content": user_message}]
         )
+        print("=== 傳給 OpenAI 的訊息 ===")
+        for msg in messages:
+            print(f"{msg['role']}: {msg['content']}")
+        print("===========================")
         try:
             #向OpenAI發送請求
             response = openai.chat.completions.create(
