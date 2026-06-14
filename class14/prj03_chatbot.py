@@ -43,6 +43,22 @@ weather_api = WeatherAPI(os.getenv("WEATHER_API_KEY"))
 #把OpenAI金鑰交給它，之後就能用ask()方法來請AI分析資料
 ai_assistant= AIAssisant(os.getenv("OPENAI_API_KEY"))
 
+#限制讀取的歷史訊息數量，避免一次讀太多造成AI分析困難
+CHANNLE_HISTORY_LIMIT = 15  # 在需要參考歷史對話的情況下，最多回顧多少則訊息
+
+# system_prompt 像是給 AI 的角色卡，會影響 AI 回覆的語氣和工作方式。
+CHAT_SYSTEM_PROMPT = """
+你是一個在 Discord 群組頻道中協助大家[同性戀] AI 助手。
+請根據頻道歷史判斷大家正在討論什麼，再回答最新提到你的問題。
+回覆請使用繁體中文，語氣自然、簡短、適合國小學生閱讀。
+如果頻道歷史不足以判斷答案，請說明你還需要哪一個資訊。
+如果需要提到特定使用者或其他 bot，請複製歷史訊息裡的 mention：<@使用者ID>。
+使用 mention 時，請直接放在一般文字中，不要寫成 @名字，也不要加反斜線、反引號或程式碼區塊。
+不要使用 @everyone、@here 或角色標記，也不要自己編造 mention ID。
+"""
+#允許AI回覆中提到使用者或bot，但不要讓AI觸發 @everyone、@here 或角色標記，這樣可以避免不小心觸發大規模通知。
+#bot在discord裡也屬於user，所以users=True可以讓AI在回覆中提到其他bot，這樣就能讓AI在回覆裡提到特定使用者或其他bot了。
+AI_REPLY_ALLOWED_MENTIONS = discord.AllowedMentions(users=True, roles=False, everyone=False,replied_user=True)  
 
 def build_weather_embed(weather_summary):
     """把整理好的天氣摘要排成 Discord 卡片。"""
@@ -90,7 +106,36 @@ def build_forecast_embed(forecast_summary):
         embeds.append(embed)
     return embeds
 
+async def get_channel_history(channel,bot_user, limit=CHANNLE_HISTORY_LIMIT,before=None):
+    """讀取discord頻道歷史訊息，並整理成適合給AI分析的格式。"""
+    old_messages = []
+    history_messages =[]
+    #discord API讀頻道訊息時，預設會先拿比較新的訊息
+    #這裡先明確抓最近幾則，把抓資料和排成對話順序分成兩步。
+    #oldest_first=False代表先拿before的新訊息。
+    #下面再反轉成舊到新交給AI，比較像大家平常閱讀對話的順序
 
+
+    async for old_message in channel.history(limit=limit, before=before, oldest_first=False):
+        old_messages.append(old_message)
+    #discord抓回來的是新到舊，但AI閱讀對時需要舊到新。
+    for old_message in reversed(old_messages):#reversed()是Python內建函式，可以把列表反轉過來。
+        #這裡使用message.content，而不是clean_content。
+        #message.content會保留<@使用者ID>這種真正的mention格式
+        content = old_message.content.strip()#strip()可以去掉字串前後的空白，避免多打一格空白造成AI分析困難
+        if not content:
+            continue #空白訊息不用交給AI，避免浪費上下文空間
+        if old_message.author.id == bot_user.id:
+            #機器人自己以前說過的話，用assistant角色放回歷史中
+            history_messages.append({"role":"assistant","content":content})
+        else:
+            #其他同學和其他bot標籤上的名字，AI才知道是說的。
+            speaker_type ="機器人"if old_message.author.bot else "同學"
+            speaker_mention = old_message.author.mention
+            user_content=(
+                f"{old_message.author.display_name}"
+                f"({speaker_type},mention:{speaker_mention})說:{content}"
+            )
 ####################### 事件 #######################
 # 【觀念補充】
 # @bot.event 叫做「裝飾器 (Decorator)」，可以想像成幫下方的函式貼上「事件處理員」的標籤。
@@ -245,4 +290,8 @@ pip install -U python-dotenv    (讀取 .env 檔案資料用的套件)
 【其他補充】
 - @bot.event 原理類似筆記圖片，但它是包裝上 Discord 的官方模板 (讓它可以運行的必要程式)。
 - `*` 符號在程式碼中通常代表「所有的 / 全部」的意思。
+下面是在CHAT_SYSTEM_PROMPT中讓bot可以@別人的指令文:
+如果需要提到特定使用者或其他 bot，請複製歷史訊息裡的 mention：<@使用者ID>。
+使用 mention 時，請直接放在一般文字中，不要寫成 @名字，也不要加反斜線、反引號或程式碼區塊。
+不要使用 @everyone、@here 或角色標記，也不要自己編造 mention ID。
 """
